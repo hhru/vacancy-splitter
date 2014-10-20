@@ -1,16 +1,16 @@
-package ru.hh.vsplitter;
+package ru.hh.vsplitter.vectorize;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.testng.annotations.Test;
 import ru.hh.vsplitter.stem.Stemmer;
 import java.util.List;
 import java.util.Map;
-
 import static java.lang.Math.log;
 import static java.lang.Math.sqrt;
 import static org.testng.Assert.assertEquals;
-import static ru.hh.vsplitter.DocVector.fromDense;
+import static ru.hh.vsplitter.vectorize.DocVector.fromDense;
 
 public class VectorizerTest {
 
@@ -25,7 +25,7 @@ public class VectorizerTest {
         stemmer.stem("senior"), 4
     );
 
-    Vectorizer vectorizer = new Vectorizer(termCounts, 13);
+    Vectorizer vectorizer = new Vectorizer(termCounts, 13, true);
 
     assertEquals(vectorizer.vectorize("java software developer"),
         fromDense(
@@ -52,7 +52,7 @@ public class VectorizerTest {
         "java/python",
         "senior python developer",
         "development of java language",
-        "development python interpreter for android",
+        "development python interpreter of android applications",
         "developer",
         "senior java developer (android)",
         "developers concerned in python",
@@ -60,13 +60,13 @@ public class VectorizerTest {
         "senior developer"
     );
 
-    assertEquals(Vectorizer.fromDocCorpus(corpus, 3), new Vectorizer(ImmutableMap.of(
+    assertEquals(Vectorizer.fromDocCorpus(corpus, 3, ImmutableSet.of("of"), true), new Vectorizer(ImmutableMap.of(
         stemmer.stem("java"), 5,
         stemmer.stem("android"), 3,
         stemmer.stem("python"), 6,
         stemmer.stem("developer"), 12,
         stemmer.stem("senior"), 4
-    ), 13));
+    ), 13, true));
   }
 
 }

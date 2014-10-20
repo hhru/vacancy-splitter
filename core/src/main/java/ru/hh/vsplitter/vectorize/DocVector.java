@@ -1,14 +1,18 @@
-package ru.hh.vsplitter;
+package ru.hh.vsplitter.vectorize;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 
-public class DocVector {
+public class DocVector implements Serializable {
+  private static final long serialVersionUID = -5229735520323724857L;
 
-  public static class Node {
+  public static class Node implements Serializable {
+    private static final long serialVersionUID = 1479191130948761712L;
+
     public final int termId;
     public final double value;
 
@@ -67,6 +71,14 @@ public class DocVector {
     }
 
     return new DocVector(nodeList.toArray(new Node[nodeList.size()]));
+  }
+
+  public boolean isEmpty() {
+    return nodes.length == 0;
+  }
+
+  public List<Node> getNodes() {
+    return Arrays.asList(nodes);
   }
 
   @Override

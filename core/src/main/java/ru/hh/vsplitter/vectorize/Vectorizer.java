@@ -1,41 +1,84 @@
-package ru.hh.vsplitter;
+package ru.hh.vsplitter.vectorize;
 
+import com.google.common.base.Function;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.hh.vsplitter.stem.Stemmer;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.Iterables.filter;
 
 public class Vectorizer implements Serializable {
+  private static final long serialVersionUID = 8033615511078684745L;
+
   private static final Logger log = LoggerFactory.getLogger(Vectorizer.class);
   private static final Splitter TOKENIZER =
       Splitter.on(CharMatcher.JAVA_LETTER_OR_DIGIT.negate()).omitEmptyStrings().trimResults();
 
-  private transient final Stemmer stemmer = Stemmer.getDefault(); // not thread safe, so not static
+  private transient Stemmer stemmer; // not thread safe, so not static
 
+  private final boolean stem;
   private final TermInfo[] terms;
   private final Map<String, Integer> termIndex;
   private final int totalDocs;
 
-  public static Vectorizer fromDocCorpus(Iterable<String> docs, int threshold) {
-    Stemmer stemmer = Stemmer.getDefault();
+  private static final Function<String, String> LOWERCASE = new Function<String, String>() {
+    @Override
+    public String apply(String input) {
+      return input.toLowerCase();
+    }
+  };
+
+  public Vectorizer(Map<String, Integer> termCounts, int totalDocs, boolean stem) {
+    this.totalDocs = totalDocs;
+    this.stem = stem;
+    List<String> sorted = Ordering.natural().sortedCopy(termCounts.keySet());
+
+    terms = new TermInfo[sorted.size()];
+    termIndex = new HashMap<>();
+
+    for (int termId = 0; termId < sorted.size(); termId++) {
+      String termText = sorted.get(termId).intern();
+      TermInfo term = new TermInfo(termText, termId, termCounts.get(termText));
+      terms[termId] = term;
+      termIndex.put(termText, termId);
+    }
+
+    initStemmer();
+  }
+
+  private void initStemmer() {
+    stemmer = stem ? Stemmer.getDefault() : Stemmer.getDummy();
+  }
+
+  public static Vectorizer fromDocCorpus(Iterable<String> docs, int threshold, Set<String> stopWords, boolean stem) {
+    Stemmer stemmer = stem ? Stemmer.getDefault() : Stemmer.getDummy();
 
     Map<String, Integer> termCounts = new HashMap<>();
     int totalDocs = 0;
 
     for (String doc : docs) {
-      List<String> tokens = TOKENIZER.splitToList(doc);
+      List<String> tokens = ImmutableList.copyOf(
+          Iterables.transform(filter(TOKENIZER.split(doc), not(Predicates.in(stopWords))), LOWERCASE));
 
       if (tokens.size() > 0) {
         totalDocs++;
@@ -64,22 +107,7 @@ public class Vectorizer implements Serializable {
       log.debug("cleaned term count: {}", termCounts.size());
     }
 
-    return new Vectorizer(termCounts, totalDocs);
-  }
-
-  public Vectorizer(Map<String, Integer> termCounts, int totalDocs) {
-    this.totalDocs = totalDocs;
-    List<String> sorted = Ordering.natural().sortedCopy(termCounts.keySet());
-
-    terms = new TermInfo[sorted.size()];
-    termIndex = new HashMap<>();
-
-    for (int termId = 0; termId < sorted.size(); termId++) {
-      String termText = sorted.get(termId).intern();
-      TermInfo term = new TermInfo(termText, termId, termCounts.get(termText));
-      terms[termId] = term;
-      termIndex.put(termText, termId);
-    }
+    return new Vectorizer(termCounts, totalDocs, stem);
   }
 
   protected double tfIdf(int termId, int termCount, int docLength) {
@@ -110,7 +138,13 @@ public class Vectorizer implements Serializable {
     }));
   }
 
-  public static final class TermInfo {
+  public List<TermInfo> terms() {
+    return Collections.unmodifiableList(Arrays.asList(terms));
+  }
+
+  public static final class TermInfo implements Serializable {
+    private static final long serialVersionUID = 3812856090372280710L;
+
     public final String term;
     public final int id;
     public final int docFreq;
@@ -142,6 +176,15 @@ public class Vectorizer implements Serializable {
       result = 31 * result + docFreq;
       return result;
     }
+
+    @Override
+    public String toString() {
+      return "TermInfo{" +
+          "id='" + id + '\'' +
+          ", term=" + term +
+          ", docFreq=" + docFreq +
+          '}';
+    }
   }
 
   @Override
@@ -155,11 +198,16 @@ public class Vectorizer implements Serializable {
 
     Vectorizer that = (Vectorizer) o;
 
-    return totalDocs == that.totalDocs && Arrays.equals(terms, that.terms);
+    return stem == that.stem && totalDocs == that.totalDocs && Arrays.equals(terms, that.terms);
   }
 
   @Override
   public int hashCode() {
-    return 31 * Arrays.hashCode(terms) + totalDocs;
+    return 31 * (31 * Arrays.hashCode(terms) + (stem ? 1 : 0) ) + totalDocs;
+  }
+
+  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    initStemmer();
   }
 }

@@ -35,6 +35,10 @@ public class Stemmer {
     return new Stemmer(Language.RUSSIAN, Language.ENGLISH);
   }
 
+  public static Stemmer getDummy() {
+    return new Stemmer();
+  }
+
   public Stemmer(Language... languages) {
     this(Arrays.asList(languages), DEFAULT_PRE_STEM_LIMIT, DEFAULT_POST_STEM_LIMIT);
   }
