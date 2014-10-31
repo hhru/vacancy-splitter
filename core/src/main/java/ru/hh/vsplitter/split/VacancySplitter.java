@@ -26,6 +26,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import static com.google.common.collect.Iterables.concat;
+import static com.google.common.collect.Iterables.filter;
 import static ru.hh.vsplitter.split.VacancyBlock.CONDITIONS;
 import static ru.hh.vsplitter.split.VacancyBlock.REQUIREMENTS;
 import static ru.hh.vsplitter.split.VacancyBlock.RESPONSIBILITIES;
@@ -84,7 +86,7 @@ public class VacancySplitter  {
     if (sequentialBlocks.keySet().containsAll(language.mandatoryBlocks)) {
       Map<VacancyBlock, String> concatenated = new HashMap<>();
       for (Map.Entry<VacancyBlock, List<List<String>>> entry : sequentialBlocks.entrySet()) {
-        concatenated.put(entry.getKey(), Joiner.on(' ').join(entry.getValue()));
+        concatenated.put(entry.getKey(), Joiner.on(' ').join(concat(entry.getValue())));
       }
       return concatenated;
     }
@@ -96,21 +98,21 @@ public class VacancySplitter  {
       List<List<String>> sequence = sequentialBlocks.get(block);
       int maxSize = Ordering.natural().max(Iterables.transform(sequence, SIZE_FUNCTION));
       final int threshold = (int) (maxSize * THRESHOLD);
-      concatenated.put(block, Joiner.on(' ').join(Iterables.filter(sequence, new Predicate<List<String>>() {
+      concatenated.put(block, Joiner.on(' ').join(concat(filter(sequence, new Predicate<List<String>>() {
         @Override
         public boolean apply(List<String> input) {
           return input.size() > threshold;
         }
-      })));
+      }))));
     }
     return concatenated;
   }
 
   private Map<VacancyBlock, List<List<String>>> parseIntoBlocks(String xml, HtmlBlocksHandler handler, Classifier classifier) throws SplitterException {
     try (ByteArrayInputStream bos = new ByteArrayInputStream(xml.getBytes())) {
-      XMLReader reader = newReader(sentenceHandler);
+      XMLReader reader = newReader(handler);
       reader.parse(new InputSource(bos));
-      return markSequentialBlocks(ulHandler.getTextBlocks(), classifier);
+      return markSequentialBlocks(handler.getTextBlocks(), classifier);
     } catch (IOException | SAXException | ClassifierException e) {
       throw new SplitterException(e);
     }
@@ -123,11 +125,8 @@ public class VacancySplitter  {
     for (String textBlock : textBlocks) {
       VacancyBlock current = classToBlock.get(classifier.classify(textBlock));
       if (current != null) {
-        if (previous == current) {
-          List<List<String>> sequence = result.get(current);
-          sequence.get(sequence.size() - 1).add(textBlock);
-        } else {
-          List<List<String>> sequence;
+        List<List<String>> sequence;
+        if (previous != current) {
           if (!result.containsKey(current)) {
             sequence = new ArrayList<>();
             result.put(current, sequence);
@@ -135,7 +134,10 @@ public class VacancySplitter  {
             sequence = result.get(current);
           }
           sequence.add(new ArrayList<String>());
+        } else {
+          sequence = result.get(current);
         }
+        sequence.get(sequence.size() - 1).add(textBlock);
       }
 
       previous = current;
@@ -148,7 +150,7 @@ public class VacancySplitter  {
     try(ByteArrayInputStream bos = new ByteArrayInputStream(text.getBytes())) {
       newReader(fetchTextHandler).parse(new InputSource(bos));
       String lowered = fetchTextHandler.getText().toLowerCase();
-      return (Language.ENGLISH.countIn(lowered) > Language.ENGLISH.countIn(lowered)) ?
+      return (Language.ENGLISH.countIn(lowered) > Language.RUSSIAN.countIn(lowered)) ?
           Language.ENGLISH :
           Language.RUSSIAN;
     } catch (IOException | SAXException e) {

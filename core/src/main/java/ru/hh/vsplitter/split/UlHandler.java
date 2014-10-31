@@ -12,8 +12,8 @@ class UlHandler extends HtmlBlocksHandler {
   private boolean fetch;
   private int nestingLevel;
 
-  StringBuilder blockText;
-  StringBuilder tagText;
+  private StringBuilder blockText;
+  private StringBuilder tagText;
 
   // output
   private List<String> textBlocks = new ArrayList<>();
@@ -30,7 +30,7 @@ class UlHandler extends HtmlBlocksHandler {
   }
 
   private void finishTagText() {
-    String text = tagText.toString().trim();
+    String text = trimAndCollapse(tagText.toString());
 
     if (!text.isEmpty()) {
       text = makeSentence(text);

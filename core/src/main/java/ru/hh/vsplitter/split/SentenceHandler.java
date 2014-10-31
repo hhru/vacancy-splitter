@@ -1,20 +1,14 @@
 package ru.hh.vsplitter.split;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 class SentenceHandler extends HtmlBlocksHandler {
 
-  private static final Set<String> IGNORED_TAGS = ImmutableSet.of(
-      "b", "i", "u", "strong", "em", "strike", "span"
-  );
-
-  StringBuilder tagText;
+  private StringBuilder tagText;
 
   // output
   private List<String> textBlocks = new ArrayList<>();
@@ -26,7 +20,7 @@ class SentenceHandler extends HtmlBlocksHandler {
   }
 
   private void finishTagText() {
-    String text = tagText.toString().trim();
+    String text = trimAndCollapse(tagText.toString());
 
     if (!text.isEmpty()) {
       text = makeSentence(text);
