@@ -10,6 +10,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
         <link rel="stylesheet" href="/resources/bootstrap.min.css">
+        <link rel="stylesheet" href="/resources/snippets.css"/>
     </head>
 
     <body>
@@ -37,8 +38,18 @@
 
         <div class="row">
             <c:forEach items="${vacancies}" var="vacancy">
-                <div class="col-lg-6">
-                    <a href="/vacancy?vacancy_id=${vacancy.id}">${vacancy.name}</a>
+                <div class="col-lg-12">
+                    <a href="/vacancy?vacancy_id=${vacancy.id}"><h4>${vacancy.name}</h4></a>
+                    <c:if test="${not empty vacancy.salary}">
+                        <p><c:out value="${vacancy.salary}"/></p>
+                    </c:if>
+                    <c:if test="${not empty vacancy.responsibilities}">
+                        <p class="vac-block"><c:out value="${vacancy.responsibilities}"/></p>
+                    </c:if>
+                    <c:if test="${not empty vacancy.requirements}">
+                        <p class="vac-block"><c:out value="${vacancy.requirements}"/></p>
+                    </c:if>
+                    <br/>
                 </div>
             </c:forEach>
         </div>

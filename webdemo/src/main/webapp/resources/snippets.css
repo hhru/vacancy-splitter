@@ -1,11 +1,15 @@
 .req {
-    background-color: #fcf8e3;
+    background-color: #FF9966;
 }
 .res {
-    background-color: #dff0d8;
+    background-color: #33CC33;
 
 }
 .con {
     color: #fff;
     background-color: #428bca;
+}
+
+.vac-block {
+    font-size: 90%;
 }
