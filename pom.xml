@@ -16,6 +16,7 @@
     <modules>
         <module>core</module>
         <module>modelbuilder</module>
+        <module>webdemo</module>
     </modules>
 
     <dependencyManagement>
