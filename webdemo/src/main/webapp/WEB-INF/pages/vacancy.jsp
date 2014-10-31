@@ -18,23 +18,9 @@
         </ul>
     </div>
 
-    <div class="container col-md-6">
+    <div class="container">
         <h2><a href="http://hh.ru/vacancy/${vacancy.id}" target="_blank">${vacancy.name}</a></h2>
         <c:out value="${vacancy.description}" escapeXml="false"/>
-    </div>
-
-    <div class="container col-md-6">
-        <h2>Snippets</h2>
-        <c:if test="${not empty req}">
-            <p>
-                <c:out value="${req}"/>
-            </p>
-        </c:if>
-        <c:if test="${not empty res}">
-            <p>
-                <c:out value="${res}"/>
-            </p>
-        </c:if>
     </div>
 
     <div class="container col-md-12">
