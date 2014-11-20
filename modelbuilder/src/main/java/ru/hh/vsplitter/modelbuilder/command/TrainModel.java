@@ -1,27 +1,32 @@
 package ru.hh.vsplitter.modelbuilder.command;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.MapType;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.Option;
-import org.kohsuke.args4j.spi.Messages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.hh.vsplitter.Document;
+import ru.hh.vsplitter.Schema;
 import ru.hh.vsplitter.classify.Classifier;
 import ru.hh.vsplitter.classify.liblinear.LibLinearClassifier;
+import ru.hh.vsplitter.ioutil.FileLinesIterable;
 import ru.hh.vsplitter.modelbuilder.StoreUtils;
 import ru.hh.vsplitter.vectorize.DocVector;
-import ru.hh.vsplitter.vectorize.Vectorizer;
+import ru.hh.vsplitter.vectorize.DocumentVectorizer;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class TrainModel extends Command {
   private static final double DEFAULT_REGULARIZATION = 1.0;
-  private static final double DEFAULT_TOLERANCE = 0.001;
+  private static final double DEFAULT_TOLERANCE = 0.01;
 
   private final Logger log = LoggerFactory.getLogger(TrainModel.class);
 
@@ -31,36 +36,45 @@ public class TrainModel extends Command {
   @Option(name="-d", metaVar = "file", usage = "term dict location", required = true)
   private String termDictLocation;
 
-  @Option(name="-c", metaVar = "CLASSES", usage = "classes of docs (one for each input)", required = true)
-  private List<String> classes;
-
   @Option(name="-t", usage="stopping criterion of classification")
   private Double tolerance;
 
   @Option(name="-r", usage="regularization cost")
   private Double regularization;
 
-  @Argument(required = true, metaVar = "FILES", usage = "input matrices of classes")
-  private List<String> input;
+  @Argument(required = true, metaVar = "FILE", usage = "input")
+  private String input;
 
   public TrainModel(String[] args) throws CmdLineException {
     super(args);
-    if (classes.size() != input.size()) {
-      throw new CmdLineException(parser, Messages.ILLEGAL_LIST, "classes should contain information about all inputs");
-    }
   }
+
+  private ObjectMapper mapper = new ObjectMapper();
+  private TypeFactory typeFactory = mapper.getTypeFactory();
+  private MapType mapType = typeFactory.constructMapType(HashMap.class, String.class, String.class);
+
+  private Schema schema;
 
   @Override
   public void run() throws IOException {
     log.info("Loading input vectors data");
 
-    final Vectorizer vectorizer = StoreUtils.loadVectorizer(Files.newInputStream(FileSystems.getDefault().getPath(termDictLocation)));
-    Map<String, Collection<DocVector>> trainingData = new HashMap<>();
+    final DocumentVectorizer vectorizer = (DocumentVectorizer) StoreUtils.<Document>loadVectorizer(
+        Files.newInputStream(FileSystems.getDefault().getPath(termDictLocation)));
 
-    for (int i = 0; i < input.size(); ++i) {
-      String docClass = classes.get(i);
-      List<DocVector> matrix = StoreUtils.loadMatrix(Files.newInputStream(FileSystems.getDefault().getPath(input.get(i))));
-      trainingData.put(docClass, matrix);
+    schema = vectorizer.getSchema();
+    Map<String, Collection<DocVector>> trainingData = new HashMap<>();
+    for (String line : FileLinesIterable.fromPath(FileSystems.getDefault().getPath(input))) {
+      Map<String, String> data = mapper.readValue(line, mapType);
+
+      String type = data.get("class");
+      Collection<DocVector> vectors = trainingData.get(type);
+      if (vectors == null) {
+        vectors = new ArrayList<>();
+        trainingData.put(type, vectors);
+      }
+
+      vectors.add(vectorizer.vectorize(new Document(schema, data)));
     }
 
     log.info("Loaded training data");
@@ -72,7 +86,7 @@ public class TrainModel extends Command {
       tolerance = DEFAULT_TOLERANCE;
     }
 
-    Classifier classifier = LibLinearClassifier.train(trainingData, vectorizer, regularization, tolerance);
+    Classifier<Document> classifier = LibLinearClassifier.train(trainingData, vectorizer, regularization, tolerance);
     classifier.save(Files.newOutputStream(FileSystems.getDefault().getPath(output)));
   }
 }

@@ -9,7 +9,7 @@ import ru.hh.vsplitter.classify.Classifier;
 import ru.hh.vsplitter.classify.ClassifierException;
 import ru.hh.vsplitter.ioutil.FileLinesIterable;
 import ru.hh.vsplitter.vectorize.DocVector;
-import ru.hh.vsplitter.vectorize.Vectorizer;
+import ru.hh.vsplitter.vectorize.TfIdfVectorizer;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -26,7 +26,7 @@ public class LibLinearClassifierTest {
 
   static final List<String> CLASSES = ImmutableList.of("requirements", "responsibilities", "conditions", "nothing");
 
-  private Vectorizer vectorizer;
+  private TfIdfVectorizer vectorizer;
   private Map<String, List<DocVector>> docCorpus;
 
   @BeforeClass
@@ -38,7 +38,7 @@ public class LibLinearClassifierTest {
           FileLinesIterable.fromResource(Thread.currentThread().getContextClassLoader(), "training/" + className)));
     }
 
-    vectorizer = Vectorizer.fromDocCorpus(Iterables.concat(trainingData.values()), 3, Collections.<String>emptySet(), true);
+    vectorizer = TfIdfVectorizer.fromDocCorpus(Iterables.concat(trainingData.values()), 3, Collections.<String>emptySet(), true);
 
     docCorpus = new HashMap<>();
     for (String className : CLASSES) {
@@ -52,7 +52,7 @@ public class LibLinearClassifierTest {
 
   @Test
   public void testClassification() throws IOException, URISyntaxException, ClassifierException {
-    Classifier classifier = LibLinearClassifier.train(docCorpus, vectorizer);
+    Classifier<String> classifier = LibLinearClassifier.train(docCorpus, vectorizer);
 
     assertEquals(classifier.classify("опыт работы в строительстве"), "requirements");
     assertEquals(classifier.classify("высшее образование"), "requirements");
@@ -70,12 +70,12 @@ public class LibLinearClassifierTest {
   @Test
   public void testSerialization() throws IOException, ClassNotFoundException {
     // need to serialize at first time because of minor bug in liblinear double serialization
-    Classifier original = fromByteArray(toByteArray(LibLinearClassifier.train(docCorpus, vectorizer)));
+    Classifier<String> original = fromByteArray(toByteArray(LibLinearClassifier.train(docCorpus, vectorizer)));
     byte[] copy = toByteArray(original);
-    assertEquals(original, fromByteArray(copy));
+    assertEquals(original, LibLinearClassifierTest.<String>fromByteArray(copy));
   }
 
-  private static byte[] toByteArray(Classifier classifier) {
+  private static <T> byte[] toByteArray(Classifier<T> classifier) {
     try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
       classifier.save(bos);
       return bos.toByteArray();
@@ -84,9 +84,10 @@ public class LibLinearClassifierTest {
     }
   }
 
-  private static Classifier fromByteArray(byte[] bytes) {
+  @SuppressWarnings("unchecked")
+  private static <T> Classifier<T> fromByteArray(byte[] bytes) {
     try (ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
-      return (Classifier) ois.readObject();
+      return (Classifier<T>) ois.readObject();
     } catch (IOException | ClassNotFoundException e) {
       throw Throwables.propagate(e);
     }

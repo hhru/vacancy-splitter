@@ -10,23 +10,23 @@ import java.io.OutputStream;
 import java.util.Collection;
 import java.util.List;
 
-public abstract class BaseClassifier implements Classifier {
+public abstract class BaseClassifier<T> implements Classifier<T> {
 
   protected final List<String> classes;
-  protected final Vectorizer vectorizer;
+  protected final Vectorizer<T> vectorizer;
 
-  public BaseClassifier(Collection<String> classes, Vectorizer vectorizer) {
+  public BaseClassifier(Collection<String> classes, Vectorizer<T> vectorizer) {
     Preconditions.checkNotNull(classes);
     Preconditions.checkNotNull(vectorizer);
     this.classes = ImmutableList.copyOf(classes);
     this.vectorizer = vectorizer;
   }
 
-  protected abstract String classify(DocVector vector) throws ClassifierException;
+  protected abstract String classifyVector(DocVector vector) throws ClassifierException;
 
-  public String classify(String text) throws ClassifierException {
-    DocVector vector = vectorizer.vectorize(text);
-    return !vector.isEmpty() ? classify(vector) : null;
+  public String classify(T input) throws ClassifierException {
+    DocVector vector = vectorizer.vectorize(input);
+    return !vector.isEmpty() ? classifyVector(vector) : null;
   }
 
   // it is just java serialization now, but it can be changed later

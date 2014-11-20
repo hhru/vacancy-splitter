@@ -47,18 +47,20 @@ public class DocVector implements Serializable {
   }
 
   private final Node[] nodes;
+  private final int dimensions;
 
-  private DocVector(Node[] nodes) {
+  private DocVector(Node[] nodes, int dimensions) {
     this.nodes = nodes;
+    this.dimensions = dimensions;
   }
 
-  public static DocVector fromId2Value(SortedMap<Integer, Double> idToValue) {
+  public static DocVector fromId2Value(SortedMap<Integer, Double> idToValue, int dimensions) {
     Node[] nodes = new Node[idToValue.size()];
     int nodeId = 0;
     for (Map.Entry<Integer, Double> idAndValue : idToValue.entrySet()) {
       nodes[nodeId++] = new Node(idAndValue.getKey(), idAndValue.getValue());
     }
-    return new DocVector(nodes);
+    return new DocVector(nodes, dimensions);
   }
 
   public static DocVector fromDense(double... denseVector) {
@@ -70,7 +72,7 @@ public class DocVector implements Serializable {
       }
     }
 
-    return new DocVector(nodeList.toArray(new Node[nodeList.size()]));
+    return new DocVector(nodeList.toArray(new Node[nodeList.size()]), denseVector.length);
   }
 
   public boolean isEmpty() {
@@ -79,6 +81,25 @@ public class DocVector implements Serializable {
 
   public List<Node> getNodes() {
     return Arrays.asList(nodes);
+  }
+
+  public static DocVector concat(List<DocVector> vectors) {
+    int totalSize = 0;
+    for (DocVector vector : vectors) {
+      totalSize += vector.nodes.length;
+    }
+
+    Node[] nodes = new Node[totalSize];
+    int nodeId = 0;
+    int dimensions = 0;
+    for (DocVector vector : vectors) {
+      for (Node node : vector.nodes) {
+        nodes[nodeId++] = new Node(node.termId + dimensions, node.value);
+      }
+      dimensions += vector.dimensions;
+    }
+
+    return new DocVector(nodes, dimensions);
   }
 
   @Override

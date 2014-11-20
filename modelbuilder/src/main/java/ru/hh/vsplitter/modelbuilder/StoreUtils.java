@@ -20,9 +20,9 @@ public class StoreUtils {
     }
   }
 
-  public static Vectorizer loadVectorizer(InputStream inputStream) throws IOException {
+  public static <T> Vectorizer<T> loadVectorizer(InputStream inputStream) throws IOException {
     try (ObjectInputStream in = new ObjectInputStream(inputStream)) {
-      return (Vectorizer) in.readObject();
+      return (Vectorizer<T>) in.readObject();
     } catch (ClassNotFoundException e) {
       throw Throwables.propagate(e);
     }
@@ -43,9 +43,10 @@ public class StoreUtils {
     }
   }
 
-  public static BaseClassifier loadClassifier(InputStream inputStream) throws IOException {
+  @SuppressWarnings("unchecked")
+  public static <T> BaseClassifier<T> loadClassifier(InputStream inputStream) throws IOException {
     try (ObjectInputStream in = new ObjectInputStream(inputStream)) {
-      return (BaseClassifier) in.readObject();
+      return (BaseClassifier<T>) in.readObject();
     } catch (ClassNotFoundException e) {
       throw Throwables.propagate(e);
     }

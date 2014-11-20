@@ -33,7 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LibLinearClassifier extends BaseClassifier {
+public class LibLinearClassifier<T> extends BaseClassifier<T> {
   private static final long serialVersionUID = -3211309612063885934L;
 
   private static final Logger log = LoggerFactory.getLogger(LibLinearClassifier.class);
@@ -49,14 +49,14 @@ public class LibLinearClassifier extends BaseClassifier {
 
   private final Model model;
 
-  private LibLinearClassifier(Collection<String> classes, Vectorizer vectorizer, Model model) {
+  private LibLinearClassifier(Collection<String> classes, Vectorizer<T> vectorizer, Model model) {
     super(classes, vectorizer);
     Preconditions.checkNotNull(model);
     this.model = model;
   }
 
   @Override
-  protected String classify(DocVector vector) throws ClassifierException {
+  protected String classifyVector(DocVector vector) throws ClassifierException {
     int classNumber = (int) Math.round(Linear.predict(model, toFeatures(vector)));
     if (classNumber < 0 || classNumber >= classes.size()) {
       throw new ClassifierException("liblinear returned unknown class");
@@ -85,17 +85,17 @@ public class LibLinearClassifier extends BaseClassifier {
   private static final double CONSTRAINT_COST = 1.0;
   private static final double STOPPING_CRITERION = 1e-3;
 
-  public static LibLinearClassifier train(Map<String, ? extends Collection<DocVector>> trainingData, Vectorizer vectorizer) {
+  public static <T> LibLinearClassifier<T> train(Map<String, ? extends Collection<DocVector>> trainingData, Vectorizer<T> vectorizer) {
     return train(trainingData, vectorizer, CONSTRAINT_COST, STOPPING_CRITERION);
   }
 
-  public static LibLinearClassifier train(Map<String, ? extends Collection<DocVector>> trainingData, Vectorizer vectorizer,
-                                          double constraintCost, double stoppingCriterion) {
+  public static <T> LibLinearClassifier<T> train(Map<String, ? extends Collection<DocVector>> trainingData, Vectorizer<T> vectorizer,
+                                                 double constraintCost, double stoppingCriterion) {
     return train(trainingData, vectorizer, SOLVER_TYPE, constraintCost, stoppingCriterion);
   }
 
-  public static LibLinearClassifier train(Map<String, ? extends Collection<DocVector>> trainingData,
-                                          Vectorizer vectorizer,
+  public static <T> LibLinearClassifier<T> train(Map<String, ? extends Collection<DocVector>> trainingData,
+                                          Vectorizer<T> vectorizer,
                                           SolverType solverType, double regularization, double stoppingCriterion) {
     List<String> classes = ImmutableList.copyOf(trainingData.keySet());
     Map<String, Integer> classToInt = new HashMap<>();
@@ -110,7 +110,7 @@ public class LibLinearClassifier extends BaseClassifier {
 
     Problem problem = new Problem();
     problem.l = totalTrainingSize;
-    problem.n = vectorizer.terms().size();
+    problem.n = vectorizer.getDimensionCount();
     problem.x = new Feature[totalTrainingSize][];
     problem.y = new double[totalTrainingSize];
 
@@ -129,7 +129,7 @@ public class LibLinearClassifier extends BaseClassifier {
     Parameter parameter = new Parameter(solverType, regularization, stoppingCriterion);
     log.info("Converted all entries to svm representation, actual training started");
     Model model = Linear.train(problem, parameter);
-    return new LibLinearClassifier(classes, vectorizer, model);
+    return new LibLinearClassifier<T>(classes, vectorizer, model);
   }
 
   public static LibLinearClassifier loadFromStream(InputStream inputStream) throws IOException {
@@ -140,14 +140,14 @@ public class LibLinearClassifier extends BaseClassifier {
     }
   }
 
-  private static class SerialForm implements Serializable {
+  private static class SerialForm<T> implements Serializable {
     private static final long serialVersionUID = 433858939919659541L;
 
     public List<String> classes;
-    public Vectorizer vectorizer;
+    public Vectorizer<T> vectorizer;
     public byte[] model;
 
-    public SerialForm(LibLinearClassifier classifier) {
+    public SerialForm(LibLinearClassifier<T> classifier) {
       classes = classifier.classes;
       vectorizer = classifier.vectorizer;
 
@@ -165,7 +165,7 @@ public class LibLinearClassifier extends BaseClassifier {
     protected Object readResolve() throws ObjectStreamException {
       BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(model)));
       try {
-        return new LibLinearClassifier(classes, vectorizer, Model.load(reader));
+        return new LibLinearClassifier<>(classes, vectorizer, Model.load(reader));
       } catch (IOException e) {
         throw Throwables.propagate(e);
       }
@@ -173,7 +173,7 @@ public class LibLinearClassifier extends BaseClassifier {
   }
 
   protected Object writeReplace() throws ObjectStreamException {
-    return new SerialForm(this);
+    return new SerialForm<>(this);
   }
 
   @Override

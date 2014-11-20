@@ -63,9 +63,9 @@ public class VacancySplitter  {
   private final HtmlBlocksHandler sentenceHandler = new SentenceHandler();
 
   private final Map<String, VacancyBlock> classToBlock;
-  private final ImmutableMap<Language, Classifier> classifiers;
+  private final ImmutableMap<Language, Classifier<String>> classifiers;
 
-  public VacancySplitter(Classifier engClassifier, Classifier rusClassifier, Map<String, VacancyBlock> classToBlock) {
+  public VacancySplitter(Classifier<String> engClassifier, Classifier<String> rusClassifier, Map<String, VacancyBlock> classToBlock) {
     classifiers = ImmutableMap.of(Language.ENGLISH, engClassifier, Language.RUSSIAN, rusClassifier);
     this.classToBlock = classToBlock;
   }
@@ -79,7 +79,7 @@ public class VacancySplitter  {
 
   public Map<VacancyBlock, String> split(String text) throws SplitterException {
     Language language = inferLanguage(text);
-    Classifier classifier = classifiers.get(language);
+    Classifier<String> classifier = classifiers.get(language);
 
     Map<VacancyBlock, List<List<String>>> sequentialBlocks = parseIntoBlocks(text, ulHandler, classifier);
 
@@ -108,7 +108,7 @@ public class VacancySplitter  {
     return concatenated;
   }
 
-  private Map<VacancyBlock, List<List<String>>> parseIntoBlocks(String xml, HtmlBlocksHandler handler, Classifier classifier) throws SplitterException {
+  private Map<VacancyBlock, List<List<String>>> parseIntoBlocks(String xml, HtmlBlocksHandler handler, Classifier<String> classifier) throws SplitterException {
     try (ByteArrayInputStream bos = new ByteArrayInputStream(xml.getBytes())) {
       XMLReader reader = newReader(handler);
       reader.parse(new InputSource(bos));
@@ -118,7 +118,7 @@ public class VacancySplitter  {
     }
   }
 
-  private Map<VacancyBlock, List<List<String>>> markSequentialBlocks(List<String> textBlocks, Classifier classifier) throws ClassifierException {
+  private Map<VacancyBlock, List<List<String>>> markSequentialBlocks(List<String> textBlocks, Classifier<String> classifier) throws ClassifierException {
     Map<VacancyBlock, List<List<String>>> result = new HashMap<>();
     VacancyBlock previous = null;
 

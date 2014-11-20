@@ -5,11 +5,11 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.Collection;
 
-public interface Classifier extends Serializable {
+public interface Classifier<T> extends Serializable {
 
   Collection<String> getClasses();
 
-  String classify(String text) throws ClassifierException;
+  String classify(T input) throws ClassifierException;
 
   void save(OutputStream outputStream) throws IOException;
 

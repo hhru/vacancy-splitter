@@ -3,6 +3,7 @@ package ru.hh.vsplitter.modelbuilder;
 import com.google.common.base.Throwables;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.OptionHandlerFilter;
+import ru.hh.vsplitter.modelbuilder.command.Experiment;
 import ru.hh.vsplitter.modelbuilder.command.Predict;
 import ru.hh.vsplitter.modelbuilder.command.TermDict;
 import ru.hh.vsplitter.modelbuilder.command.TrainModel;
@@ -32,6 +33,9 @@ public class Runner {
         case "predict":
           new Predict(args).run();
           break;
+        case "experiment":
+          new Experiment(args).run();
+          break;
         default:
           throw new IllegalArgumentException("Illegal Command");
       }
@@ -44,5 +48,4 @@ public class Runner {
       throw Throwables.propagate(t);
     }
   }
-
 }
