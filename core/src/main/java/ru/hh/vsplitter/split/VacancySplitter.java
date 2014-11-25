@@ -4,13 +4,14 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
-import com.google.common.collect.EvictingQueue;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.PeekingIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -27,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import static com.google.common.collect.Iterables.concat;
@@ -112,7 +112,8 @@ public class VacancySplitter  {
     return concatenated;
   }
 
-  private Map<VacancyBlock, List<List<String>>> parseIntoBlocks(String xml, HtmlBlocksHandler handler, Classifier classifier) throws SplitterException {
+  private Map<VacancyBlock, List<List<String>>> parseIntoBlocks(String xml, HtmlBlocksHandler handler,
+                                                                Classifier classifier) throws SplitterException {
     try (ByteArrayInputStream bos = new ByteArrayInputStream(xml.getBytes())) {
       XMLReader reader = newReader(handler);
       reader.parse(new InputSource(bos));
@@ -122,68 +123,58 @@ public class VacancySplitter  {
     }
   }
 
-  private Map<VacancyBlock, List<List<String>>> markSequentialBlocks(List<String> textBlocks, Classifier classifier) throws ClassifierException {
-    Map<VacancyBlock, List<List<String>>> result = new HashMap<>();
-    VacancyBlock previousBlock = null;
+  private VacancyBlock classifyBlock(String current, String leftContext, String rightContext,
+                                     Classifier classifier) throws ClassifierException {
+    final VacancyBlock quorum;
 
-    PeekingIterator<String> blockIterator = Iterators.peekingIterator(textBlocks.iterator());
-
-    if (!blockIterator.hasNext()) {
-      return result;
-    }
-
-    EvictingQueue<String> textQueue = EvictingQueue.create(3);
-    textQueue.addAll(Arrays.asList("", "", blockIterator.peek()));
-
-    while (blockIterator.hasNext()) {
-      blockIterator.next();
-      textQueue.add(blockIterator.hasNext() ? blockIterator.peek() : "");
-
-      String left, current, right;
-      Iterator<String> queueIterator = textQueue.iterator();
-
-      left = queueIterator.next();
-      current = queueIterator.next();
-
-      left += current;
-      right = current;
-      right += queueIterator.next();
-
-      VacancyBlock quorum;
-
-      VacancyBlock leftBlock = classToBlock.get(classifier.classify(left));
-      VacancyBlock currentBlock = classToBlock.get(classifier.classify(current));
-      if (leftBlock == currentBlock) {
-        quorum = leftBlock;
+    VacancyBlock leftBlock = classToBlock.get(classifier.classify(leftContext + current));
+    VacancyBlock currentBlock = classToBlock.get(classifier.classify(current));
+    if (leftBlock == currentBlock) {
+      quorum = leftBlock;
+    } else {
+      VacancyBlock rightBlock = classToBlock.get(classifier.classify(rightContext + current));
+      if (rightBlock == leftBlock) {
+        quorum = rightBlock;
       } else {
-        VacancyBlock rightBlock = classToBlock.get(classifier.classify(right));
-        if (rightBlock == leftBlock) {
-          quorum = rightBlock;
-        } else {
-          quorum = currentBlock;
-        }
+        quorum = currentBlock;
       }
-
-      List<List<String>> sequence;
-      if (quorum != null) {
-        if (previousBlock != quorum) {
-          if (!result.containsKey(quorum)) {
-            sequence = new ArrayList<>();
-            result.put(quorum, sequence);
-          } else {
-            sequence = result.get(quorum);
-          }
-          sequence.add(new ArrayList<String>());
-        } else {
-          sequence = result.get(quorum);
-        }
-        sequence.get(sequence.size() - 1).add(current);
-      }
-
-      previousBlock = quorum;
     }
 
-    return result;
+    return quorum;
+  }
+
+  private Map<VacancyBlock, List<List<String>>> markSequentialBlocks(List<String> textBlocks,
+                                                                     Classifier classifier) throws ClassifierException {
+    ListMultimap<VacancyBlock, List<String>> result = ArrayListMultimap.create();
+    VacancyBlock previousClass = null;
+    List<String> currentSequence = null;
+
+    for (int blockIndex = 0; blockIndex < textBlocks.size(); blockIndex++) {
+
+      String current = textBlocks.get(blockIndex);
+
+      String leftContext = blockIndex > 0 ? textBlocks.get(blockIndex - 1) : "";
+      String rightContext = blockIndex < textBlocks.size() - 1 ? textBlocks.get(blockIndex + 1) : "";
+      VacancyBlock currentClass = classifyBlock(current, leftContext, rightContext, classifier);
+
+      if (currentClass != null) {
+        if (previousClass != currentClass) {
+          currentSequence = new ArrayList<>();
+          result.get(currentClass).add(currentSequence);
+        }
+        currentSequence.add(current);
+      }
+
+      previousClass = currentClass;
+    }
+
+    // correctness of conversion is guaranteed by ArrayListMultimap implementation
+    return Maps.transformValues(result.asMap(), new Function<Collection<List<String>>, List<List<String>>>() {
+      @Override
+      public List<List<String>> apply(Collection<List<String>> input) {
+        return (List<List<String>>) input;
+      }
+    });
   }
 
   private Language inferLanguage(String text) throws SplitterException {
