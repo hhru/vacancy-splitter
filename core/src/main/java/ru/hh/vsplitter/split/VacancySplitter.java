@@ -4,10 +4,13 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
+import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.PeekingIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -24,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import static com.google.common.collect.Iterables.concat;
@@ -120,27 +124,63 @@ public class VacancySplitter  {
 
   private Map<VacancyBlock, List<List<String>>> markSequentialBlocks(List<String> textBlocks, Classifier classifier) throws ClassifierException {
     Map<VacancyBlock, List<List<String>>> result = new HashMap<>();
-    VacancyBlock previous = null;
+    VacancyBlock previousBlock = null;
 
-    for (String textBlock : textBlocks) {
-      VacancyBlock current = classToBlock.get(classifier.classify(textBlock));
-      if (current != null) {
-        List<List<String>> sequence;
-        if (previous != current) {
-          if (!result.containsKey(current)) {
+    PeekingIterator<String> blockIterator = Iterators.peekingIterator(textBlocks.iterator());
+
+    if (!blockIterator.hasNext()) {
+      return result;
+    }
+
+    EvictingQueue<String> textQueue = EvictingQueue.create(3);
+    textQueue.addAll(Arrays.asList("", "", blockIterator.peek()));
+
+    while (blockIterator.hasNext()) {
+      blockIterator.next();
+      textQueue.add(blockIterator.hasNext() ? blockIterator.peek() : "");
+
+      String left, current, right;
+      Iterator<String> queueIterator = textQueue.iterator();
+
+      left = queueIterator.next();
+      current = queueIterator.next();
+
+      left += current;
+      right = current;
+      right += queueIterator.next();
+
+      VacancyBlock quorum;
+
+      VacancyBlock leftBlock = classToBlock.get(classifier.classify(left));
+      VacancyBlock currentBlock = classToBlock.get(classifier.classify(current));
+      if (leftBlock == currentBlock) {
+        quorum = leftBlock;
+      } else {
+        VacancyBlock rightBlock = classToBlock.get(classifier.classify(right));
+        if (rightBlock == leftBlock) {
+          quorum = rightBlock;
+        } else {
+          quorum = currentBlock;
+        }
+      }
+
+      List<List<String>> sequence;
+      if (quorum != null) {
+        if (previousBlock != quorum) {
+          if (!result.containsKey(quorum)) {
             sequence = new ArrayList<>();
-            result.put(current, sequence);
+            result.put(quorum, sequence);
           } else {
-            sequence = result.get(current);
+            sequence = result.get(quorum);
           }
           sequence.add(new ArrayList<String>());
         } else {
-          sequence = result.get(current);
+          sequence = result.get(quorum);
         }
-        sequence.get(sequence.size() - 1).add(textBlock);
+        sequence.get(sequence.size() - 1).add(current);
       }
 
-      previous = current;
+      previousBlock = quorum;
     }
 
     return result;
