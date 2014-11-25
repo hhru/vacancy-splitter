@@ -110,7 +110,7 @@ public class LibLinearClassifier extends BaseClassifier {
 
     Problem problem = new Problem();
     problem.l = totalTrainingSize;
-    problem.n = vectorizer.terms().size();
+    problem.n = vectorizer.dimensionCount();
     problem.x = new Feature[totalTrainingSize][];
     problem.y = new double[totalTrainingSize];
 

@@ -6,7 +6,7 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.Option;
 import ru.hh.vsplitter.ioutil.FileLinesIterable;
 import ru.hh.vsplitter.modelbuilder.StoreUtils;
-import ru.hh.vsplitter.vectorize.Vectorizer;
+import ru.hh.vsplitter.vectorize.TfIdfVectorizer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -46,7 +46,7 @@ public class TermDict extends Command {
     }
 
     Set<String> stopWords = ImmutableSet.copyOf(FileLinesIterable.fromResource(getClass().getClassLoader(), "stopwords"));
-    Vectorizer vectorizer = Vectorizer.fromDocCorpus(
+    TfIdfVectorizer vectorizer = TfIdfVectorizer.fromDocCorpus(
         concat(fileLinesList), threshold != null ? threshold : DEFAULT_THRESHOLD, stopWords, stem);
 
     OutputStream outputStream = null;
@@ -63,7 +63,7 @@ public class TermDict extends Command {
           printStream = System.out;
         }
 
-        for (Vectorizer.TermInfo termInfo : vectorizer.terms()) {
+        for (TfIdfVectorizer.TermInfo termInfo : vectorizer.terms()) {
           printStream.println(termInfo);
         }
       } else {

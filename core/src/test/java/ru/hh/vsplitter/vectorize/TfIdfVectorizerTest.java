@@ -12,7 +12,7 @@ import static java.lang.Math.sqrt;
 import static org.testng.Assert.assertEquals;
 import static ru.hh.vsplitter.vectorize.DocVector.fromDense;
 
-public class VectorizerTest {
+public class TfIdfVectorizerTest {
 
   @Test
   public void testVectorizer() {
@@ -25,7 +25,7 @@ public class VectorizerTest {
         stemmer.stem("senior"), 4
     );
 
-    Vectorizer vectorizer = new Vectorizer(termCounts, 13, true);
+    TfIdfVectorizer vectorizer = new TfIdfVectorizer(termCounts, 13, true);
 
     assertEquals(vectorizer.vectorize("java software developer"),
         fromDense(
@@ -60,7 +60,7 @@ public class VectorizerTest {
         "senior developer"
     );
 
-    assertEquals(Vectorizer.fromDocCorpus(corpus, 3, ImmutableSet.of("of"), true), new Vectorizer(ImmutableMap.of(
+    assertEquals(TfIdfVectorizer.fromDocCorpus(corpus, 3, ImmutableSet.of("of"), true), new TfIdfVectorizer(ImmutableMap.of(
         stemmer.stem("java"), 5,
         stemmer.stem("android"), 3,
         stemmer.stem("python"), 6,

@@ -9,7 +9,7 @@ import ru.hh.vsplitter.classify.Classifier;
 import ru.hh.vsplitter.classify.ClassifierException;
 import ru.hh.vsplitter.ioutil.FileLinesIterable;
 import ru.hh.vsplitter.vectorize.DocVector;
-import ru.hh.vsplitter.vectorize.Vectorizer;
+import ru.hh.vsplitter.vectorize.TfIdfVectorizer;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -26,7 +26,7 @@ public class LibLinearClassifierTest {
 
   static final List<String> CLASSES = ImmutableList.of("requirements", "responsibilities", "conditions", "nothing");
 
-  private Vectorizer vectorizer;
+  private TfIdfVectorizer vectorizer;
   private Map<String, List<DocVector>> docCorpus;
 
   @BeforeClass
@@ -38,7 +38,7 @@ public class LibLinearClassifierTest {
           FileLinesIterable.fromResource(Thread.currentThread().getContextClassLoader(), "training/" + className)));
     }
 
-    vectorizer = Vectorizer.fromDocCorpus(Iterables.concat(trainingData.values()), 3, Collections.<String>emptySet(), true);
+    vectorizer = TfIdfVectorizer.fromDocCorpus(Iterables.concat(trainingData.values()), 3, Collections.<String>emptySet(), true);
 
     docCorpus = new HashMap<>();
     for (String className : CLASSES) {
