@@ -22,7 +22,7 @@ public class CountingVectorizerTest {
         stemmer.stem("senior")
     );
 
-    CountingVectorizer vectorizer = new CountingVectorizer(termCounts, true);
+    CountingVectorizer vectorizer = new CountingVectorizer(termCounts, true, false);
 
     assertEquals(vectorizer.vectorize("java software developer"), fromDense(0.0, 1.0, 1.0, 0.0, 0.0));
     assertEquals(vectorizer.vectorize("senior python developer"), fromDense(0.0, 1.0, 0.0, 1.0, 1.0));
@@ -49,13 +49,15 @@ public class CountingVectorizerTest {
         "senior developer"
     );
 
-    assertEquals(CountingVectorizer.fromDocCorpus(corpus, 3, ImmutableSet.of("of"), true),
-        new CountingVectorizer(ImmutableSet.of(
-            stemmer.stem("java"),
-            stemmer.stem("android"),
-            stemmer.stem("python"),
-            stemmer.stem("developer"),
-            stemmer.stem("senior")), true));
+    CountingVectorizer vectorizer = CountingVectorizer.newBuilder()
+        .setThreshold(3)
+        .setStopWords(ImmutableSet.of("of"))
+        .setStem(true)
+        .feedAll(corpus)
+        .build();
+
+    assertEquals(vectorizer, new CountingVectorizer(ImmutableSet.of(
+        stemmer.stem("java"), stemmer.stem("android"), stemmer.stem("python"), stemmer.stem("developer"), stemmer.stem("senior")), true, false));
   }
 
 }

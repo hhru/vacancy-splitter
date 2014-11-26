@@ -35,6 +35,8 @@ public class CountingVectorizer implements Vectorizer, Serializable {
 
   private transient Stemmer stemmer; // not thread safe, so not static
 
+  private final boolean boolMode;
+
   private final boolean stem;
   private final String[] terms;
   private final Map<String, Integer> termIndex;
@@ -46,8 +48,9 @@ public class CountingVectorizer implements Vectorizer, Serializable {
     }
   };
 
-  public CountingVectorizer(Set<String> terms, boolean stem) {
+  public CountingVectorizer(Set<String> terms, boolean stem, boolean boolMode) {
     this.stem = stem;
+    this.boolMode = boolMode;
     List<String> sorted = Ordering.natural().sortedCopy(terms);
 
     this.terms = new String[sorted.size()];
@@ -66,53 +69,19 @@ public class CountingVectorizer implements Vectorizer, Serializable {
     stemmer = stem ? Stemmer.getDefault() : Stemmer.getDummy();
   }
 
-  public static CountingVectorizer fromDocCorpus(Iterable<String> docs, int threshold, Set<String> stopWords, boolean stem) {
-    Stemmer stemmer = stem ? Stemmer.getDefault() : Stemmer.getDummy();
-
-    Map<String, Integer> termCounts = new HashMap<>();
-
-    for (String doc : docs) {
-      List<String> tokens = ImmutableList.copyOf(
-          Iterables.transform(filter(TOKENIZER.split(doc), not(Predicates.in(stopWords))), LOWERCASE));
-
-      if (tokens.size() > 0) {
-        for (String token : tokens) {
-          String stemmed = stemmer.stem(token);
-          if (termCounts.containsKey(stemmed)) {
-            termCounts.put(stemmed, termCounts.get(stemmed) + 1);
-          } else {
-            termCounts.put(stemmed, 1);
-          }
-        }
-      }
-    }
-
-    log.debug("full term count: {}", termCounts.size());
-
-    if (threshold > 0) {
-      Iterator<Map.Entry<String, Integer>> entryIterator = termCounts.entrySet().iterator();
-      while (entryIterator.hasNext()) {
-        Map.Entry<String, Integer> entry = entryIterator.next();
-        if (entry.getValue() < threshold) {
-          entryIterator.remove();
-        }
-      }
-      log.debug("cleaned term count: {}", termCounts.size());
-    }
-
-    return new CountingVectorizer(termCounts.keySet(), stem);
-  }
-
   public DocVector vectorize(String doc) {
     final List<String> tokens = TOKENIZER.splitToList(doc);
 
     SortedMap<Integer, Double> termCounts = new TreeMap<>();
+
     for (String token : tokens) {
       String stemmed = stemmer.stem(token);
       if (termIndex.containsKey(stemmed)) {
         Integer termId = termIndex.get(stemmed);
         if (termCounts.containsKey(termId)) {
-          termCounts.put(termId, termCounts.get(termId) + 1.0);
+          if (!boolMode) {
+            termCounts.put(termId, termCounts.get(termId) + 1.0);
+          }
         } else {
           termCounts.put(termId, 1.0);
         }
@@ -196,6 +165,97 @@ public class CountingVectorizer implements Vectorizer, Serializable {
   private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     initStemmer();
+  }
+
+  public static class Builder {
+    private Set<String> stopWords = Collections.emptySet();
+    private int threshold = 0;
+
+    private boolean boolMode = false;
+    private boolean stem = false;
+    private Stemmer stemmer = Stemmer.getDummy();
+
+    private Map<String, Integer> termCounts = new HashMap<>();
+
+    private boolean hasData = false;
+
+    Builder() { }
+
+    public Builder setThreshold(int threshold) {
+      Preconditions.checkState(!hasData);
+
+      this.threshold = threshold;
+      return this;
+    }
+
+    public Builder setStopWords(Set<String> stopWords) {
+      Preconditions.checkState(!hasData);
+
+      this.stopWords = stopWords;
+      return this;
+    }
+
+    public Builder setStem(boolean stem) {
+      Preconditions.checkState(!hasData);
+
+      this.stem = stem;
+      stemmer = stem ? Stemmer.getDefault() : Stemmer.getDummy();
+      return this;
+    }
+
+    public Builder setBoolMode(boolean boolMode) {
+      Preconditions.checkState(!hasData);
+
+      this.boolMode = boolMode;
+      return this;
+    }
+
+    public Builder feed(String doc) {
+      hasData = true;
+
+      List<String> tokens = ImmutableList.copyOf(
+          Iterables.transform(filter(TOKENIZER.split(doc), not(Predicates.in(stopWords))), LOWERCASE));
+
+      for (String token : tokens) {
+        String stemmed = stemmer.stem(token);
+        if (termCounts.containsKey(stemmed)) {
+          termCounts.put(stemmed, termCounts.get(stemmed) + 1);
+        } else {
+          termCounts.put(stemmed, 1);
+        }
+      }
+      return this;
+    }
+
+    public Builder feedAll(Iterable<String> docs) {
+      for (String doc : docs) {
+        feed(doc);
+      }
+      return this;
+    }
+
+    public CountingVectorizer build() {
+      Preconditions.checkState(hasData);
+
+      log.debug("full term count: {}", termCounts.size());
+
+      if (threshold > 0) {
+        Iterator<Map.Entry<String, Integer>> entryIterator = termCounts.entrySet().iterator();
+        while (entryIterator.hasNext()) {
+          Map.Entry<String, Integer> entry = entryIterator.next();
+          if (entry.getValue() < threshold) {
+            entryIterator.remove();
+          }
+        }
+        log.debug("cleaned term count: {}", termCounts.size());
+      }
+
+      return new CountingVectorizer(termCounts.keySet(), stem, boolMode);
+    }
+  }
+
+  public static Builder newBuilder() {
+    return new Builder();
   }
 }
 

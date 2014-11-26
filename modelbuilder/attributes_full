@@ -1,0 +1,2 @@
+14:26:24.370 [main] DEBUG r.h.v.vectorize.CountingVectorizer - full term count: 140948
+14:26:24.440 [main] DEBUG r.h.v.vectorize.CountingVectorizer - cleaned term count: 67906
