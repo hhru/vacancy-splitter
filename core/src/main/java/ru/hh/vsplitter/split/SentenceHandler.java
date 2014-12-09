@@ -50,8 +50,8 @@ class SentenceHandler extends HtmlBlocksHandler {
   }
 
   @Override
-  public void characters(char[] charArray, int start, int length) throws SAXException {
-    tagText.append(charArray, start, length);
+  public void text(String text)  {
+    tagText.append(text);
   }
 
   @Override
