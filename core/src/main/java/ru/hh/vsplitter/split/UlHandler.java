@@ -86,9 +86,9 @@ class UlHandler extends HtmlBlocksHandler {
   }
 
   @Override
-  public void characters(char[] charArray, int start, int length) throws SAXException {
+  public void text(String text) {
     if (fetch) {
-      tagText.append(charArray, start, length);
+      tagText.append(text);
     }
   }
 
