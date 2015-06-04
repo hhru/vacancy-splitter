@@ -7,6 +7,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public abstract  class HtmlBlocksHandler extends DefaultHandler {
   protected static final Set<String> IGNORED_TAGS = ImmutableSet.of(
@@ -16,6 +17,7 @@ public abstract  class HtmlBlocksHandler extends DefaultHandler {
   private static final CharMatcher VALID_STOP = CharMatcher.anyOf(".!?:");
   private static final CharMatcher REPLACE_STOP = CharMatcher.anyOf(",;");
   private static final CharMatcher ILLEGAL_CHARACTERS = CharMatcher.anyOf("•⋅·◦");
+  private static final Pattern ENDS_WITH_ENTITY = Pattern.compile(".*&(#([0-9]+|x[0-9A-Fa-f]+)|[A-Za-z_][A-Za-z_0-9]*);$");
 
   public abstract  List<String> getTextBlocks();
 
@@ -23,7 +25,7 @@ public abstract  class HtmlBlocksHandler extends DefaultHandler {
     text = CharMatcher.WHITESPACE.collapseFrom(text.trim(), ' ');
 
     char lastChar = text.charAt(text.length() - 1);
-    if (REPLACE_STOP.matches(lastChar)) {
+    if (REPLACE_STOP.matches(lastChar) && !ENDS_WITH_ENTITY.matcher(text).matches()) {
       text = text.substring(0, text.length() - 1) + '.';
     } else if (!VALID_STOP.matches(lastChar)) {
       text = text +  ".";
