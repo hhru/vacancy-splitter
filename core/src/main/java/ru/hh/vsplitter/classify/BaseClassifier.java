@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.List;
 
 public abstract class BaseClassifier implements Classifier {
+  private static final long serialVersionUID = -688311436369224498L;
 
   protected final List<String> classes;
   protected final Vectorizer vectorizer;

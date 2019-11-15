@@ -1,29 +1,27 @@
 package ru.hh.vsplitter.ioutil;
 
-import com.google.common.base.Throwables;
-import com.google.common.io.InputSupplier;
+import com.google.common.io.CharSource;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.Reader;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 class FileLinesIterator implements Iterator<String> {
   private String line;
   private BufferedReader reader;
-  private final InputSupplier<Reader> readerSupplier;
+  private final CharSource readerSupplier;
 
-  public FileLinesIterator(InputSupplier<Reader> readerSupplier) {
+  public FileLinesIterator(CharSource readerSupplier) {
     this.readerSupplier = readerSupplier;
   }
 
   void initReader() {
     if (reader == null) {
       try {
-        reader = new BufferedReader(readerSupplier.getInput());
+        reader = new BufferedReader(readerSupplier.openStream());
         readLine();
       } catch (IOException e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
     }
   }
@@ -50,7 +48,7 @@ class FileLinesIterator implements Iterator<String> {
     try {
       readLine();
     } catch (IOException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
     return current;
   }

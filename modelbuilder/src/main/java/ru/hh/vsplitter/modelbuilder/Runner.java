@@ -1,12 +1,14 @@
 package ru.hh.vsplitter.modelbuilder;
 
-import com.google.common.base.Throwables;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.OptionHandlerFilter;
+import ru.hh.vsplitter.classify.ClassifierException;
 import ru.hh.vsplitter.modelbuilder.command.Predict;
 import ru.hh.vsplitter.modelbuilder.command.TermDict;
 import ru.hh.vsplitter.modelbuilder.command.TrainModel;
 import ru.hh.vsplitter.modelbuilder.command.VectorizeDoc;
+
+import java.io.IOException;
 import java.util.Arrays;
 
 public class Runner {
@@ -40,8 +42,8 @@ public class Runner {
 
       System.err.println("\nUsage: java -jar modelbuilder.jar" + e.getParser().printExample(OptionHandlerFilter.ALL));
       e.getParser().printUsage(System.err);
-    } catch (Throwable t) {
-      throw Throwables.propagate(t);
+    } catch (IOException | ClassifierException e) {
+      throw new RuntimeException(e);
     }
   }
 

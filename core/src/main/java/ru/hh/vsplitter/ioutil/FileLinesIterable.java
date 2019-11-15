@@ -1,7 +1,7 @@
 package ru.hh.vsplitter.ioutil;
 
 import com.google.common.base.Charsets;
-import com.google.common.io.InputSupplier;
+import com.google.common.io.CharSource;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,25 +12,25 @@ import java.util.Iterator;
 
 public class FileLinesIterable implements Iterable<String> {
 
-  private final InputSupplier<Reader> readerSupplier;
+  private final CharSource readerSupplier;
 
-  private FileLinesIterable(InputSupplier<Reader> readerSupplier) {
+  private FileLinesIterable(CharSource readerSupplier) {
     this.readerSupplier = readerSupplier;
   }
 
   public static FileLinesIterable fromPath(final Path path) {
-    return new FileLinesIterable(new InputSupplier<Reader>() {
+    return new FileLinesIterable(new CharSource() {
       @Override
-      public Reader getInput() throws IOException {
+      public Reader openStream() throws IOException {
         return Files.newBufferedReader(path, Charsets.UTF_8);
       }
     });
   }
 
   public static FileLinesIterable fromResource(final ClassLoader loader, final String resourcePath) {
-    return new FileLinesIterable(new InputSupplier<Reader>() {
+    return new FileLinesIterable(new CharSource() {
       @Override
-      public Reader getInput() throws IOException {
+      public Reader openStream() throws IOException {
         return new BufferedReader(new InputStreamReader(loader.getResourceAsStream(resourcePath)));
       }
     });

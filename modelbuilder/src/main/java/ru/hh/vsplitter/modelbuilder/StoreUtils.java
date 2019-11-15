@@ -1,6 +1,5 @@
 package ru.hh.vsplitter.modelbuilder;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import ru.hh.vsplitter.classify.BaseClassifier;
 import ru.hh.vsplitter.vectorize.DocVector;
@@ -13,6 +12,8 @@ import java.io.OutputStream;
 import java.util.List;
 
 public class StoreUtils {
+  private StoreUtils() {
+  }
 
   public static void saveVectorizer(Vectorizer vectorizer, OutputStream outputStream) throws IOException {
     try (ObjectOutputStream out = new ObjectOutputStream(outputStream)) {
@@ -24,7 +25,7 @@ public class StoreUtils {
     try (ObjectInputStream in = new ObjectInputStream(inputStream)) {
       return (Vectorizer) in.readObject();
     } catch (ClassNotFoundException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -39,7 +40,7 @@ public class StoreUtils {
     try (ObjectInputStream in = new ObjectInputStream(inputStream)) {
       return (List<DocVector>) in.readObject();
     } catch (ClassNotFoundException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -47,7 +48,7 @@ public class StoreUtils {
     try (ObjectInputStream in = new ObjectInputStream(inputStream)) {
       return (BaseClassifier) in.readObject();
     } catch (ClassNotFoundException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 
