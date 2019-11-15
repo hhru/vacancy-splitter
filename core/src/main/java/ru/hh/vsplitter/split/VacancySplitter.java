@@ -5,8 +5,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
@@ -29,12 +27,15 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
 import static ru.hh.vsplitter.split.VacancyBlock.CONDITIONS;
 import static ru.hh.vsplitter.split.VacancyBlock.REQUIREMENTS;
 import static ru.hh.vsplitter.split.VacancyBlock.RESPONSIBILITIES;
 
+@SuppressWarnings("unused")
 public class VacancySplitter  {
   private static final float THRESHOLD = 0.1f;
 
@@ -43,11 +44,11 @@ public class VacancySplitter  {
     RUSSIAN("абвгдеёжзийклмнопрстуфхцчшщъыьэюя", Arrays.asList(REQUIREMENTS, RESPONSIBILITIES, CONDITIONS));
 
     private final CharMatcher matcher;
-    private final ImmutableSet<VacancyBlock> mandatoryBlocks;
+    private final Set<VacancyBlock> mandatoryBlocks;
 
     Language(String alphabet, Collection<VacancyBlock> mandatoryBlocks) {
       matcher = CharMatcher.anyOf(alphabet);
-      this.mandatoryBlocks = ImmutableSet.copyOf(mandatoryBlocks);
+      this.mandatoryBlocks = Set.copyOf(mandatoryBlocks);
     }
 
     int countIn(String text) {
@@ -66,10 +67,10 @@ public class VacancySplitter  {
   private final HtmlBlocksHandler sentenceHandler = new SentenceHandler();
 
   private final Map<String, VacancyBlock> classToBlock;
-  private final ImmutableMap<Language, Classifier> classifiers;
+  private final Map<Language, Classifier> classifiers;
 
   public VacancySplitter(Classifier engClassifier, Classifier rusClassifier, Map<String, VacancyBlock> classToBlock) {
-    classifiers = ImmutableMap.of(Language.ENGLISH, engClassifier, Language.RUSSIAN, rusClassifier);
+    classifiers = Map.of(Language.ENGLISH, engClassifier, Language.RUSSIAN, rusClassifier);
     this.classToBlock = classToBlock;
   }
 
@@ -126,12 +127,12 @@ public class VacancySplitter  {
                                      Classifier classifier) throws ClassifierException {
     final VacancyBlock quorum;
 
-    VacancyBlock leftBlock = classToBlock.get(classifier.classify(leftContext + current));
-    VacancyBlock currentBlock = classToBlock.get(classifier.classify(current));
+    var leftBlock = classifyBlock(classifier, leftContext + current);
+    var currentBlock = classifyBlock(classifier, current);
     if (leftBlock == currentBlock) {
       quorum = leftBlock;
     } else {
-      VacancyBlock rightBlock = classToBlock.get(classifier.classify(rightContext + current));
+      var rightBlock = classifyBlock(classifier, rightContext + current);
       if (rightBlock == leftBlock) {
         quorum = rightBlock;
       } else {
@@ -140,6 +141,11 @@ public class VacancySplitter  {
     }
 
     return quorum;
+  }
+
+  private VacancyBlock classifyBlock(Classifier classifier, String text) throws ClassifierException {
+    var blockClass = classifier.classify(text);
+    return blockClass == null ? null : classToBlock.get(blockClass);
   }
 
   private Map<VacancyBlock, List<List<String>>> markSequentialBlocks(List<String> textBlocks,
