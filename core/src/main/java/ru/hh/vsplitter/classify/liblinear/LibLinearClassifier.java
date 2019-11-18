@@ -1,7 +1,6 @@
 package ru.hh.vsplitter.classify.liblinear;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import de.bwaldvogel.liblinear.Feature;
 import de.bwaldvogel.liblinear.FeatureNode;
@@ -136,7 +135,7 @@ public class LibLinearClassifier extends BaseClassifier {
     try (ObjectInputStream ois = new ObjectInputStream(inputStream)) {
       return (LibLinearClassifier) ois.readObject();
     } catch (ClassNotFoundException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -156,7 +155,7 @@ public class LibLinearClassifier extends BaseClassifier {
       try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(bos))) {
         classifier.model.save(writer);
       } catch (IOException e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
 
       model = bos.toByteArray();
@@ -167,7 +166,7 @@ public class LibLinearClassifier extends BaseClassifier {
       try {
         return new LibLinearClassifier(classes, vectorizer, Model.load(reader));
       } catch (IOException e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
     }
   }

@@ -1,6 +1,5 @@
 package ru.hh.vsplitter.stem;
 
-import com.google.common.base.Throwables;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -11,19 +10,16 @@ public class Stemmer {
   private static final int DEFAULT_POST_STEM_LIMIT = 4;
 
   public enum Language {
-    RUSSIAN(RussianProgram.class), ENGLISH(EnglishProgram.class);
+    RUSSIAN(new RussianProgram()), ENGLISH(new EnglishProgram());
 
-    final Class<? extends SnowballProgram> programClass;
-    Language(Class<? extends SnowballProgram> programClass) {
-      this.programClass = programClass;
+    final SnowballProgram program;
+
+    Language(SnowballProgram program) {
+      this.program = program;
     }
 
     SnowballProgram createProgramInstance() {
-      try {
-        return programClass.newInstance();
-      } catch (IllegalAccessException | InstantiationException e) {
-        throw Throwables.propagate(e);
-      }
+      return program;
     }
   }
 

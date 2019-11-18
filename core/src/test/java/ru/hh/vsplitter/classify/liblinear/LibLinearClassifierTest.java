@@ -1,6 +1,5 @@
 package ru.hh.vsplitter.classify.liblinear;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import org.testng.annotations.BeforeClass;
@@ -80,7 +79,7 @@ public class LibLinearClassifierTest {
       classifier.save(bos);
       return bos.toByteArray();
     } catch (IOException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -88,7 +87,7 @@ public class LibLinearClassifierTest {
     try (ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
       return (Classifier) ois.readObject();
     } catch (IOException | ClassNotFoundException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 

@@ -22,19 +22,19 @@ public abstract  class HtmlBlocksHandler extends DefaultHandler {
   public abstract  List<String> getTextBlocks();
 
   protected static String makeSentence(String text) {
-    text = CharMatcher.WHITESPACE.collapseFrom(text.trim(), ' ');
+    text = CharMatcher.whitespace().collapseFrom(text.trim(), ' ');
 
     char lastChar = text.charAt(text.length() - 1);
     if (REPLACE_STOP.matches(lastChar) && !ENDS_WITH_ENTITY.matcher(text).matches()) {
       text = text.substring(0, text.length() - 1) + '.';
     } else if (!VALID_STOP.matches(lastChar)) {
-      text = text +  ".";
+      text += ".";
     }
     return Character.toUpperCase(text.charAt(0)) + text.substring(1);
   }
 
   protected static String trimAndCollapse(String text) {
-    return CharMatcher.WHITESPACE.trimAndCollapseFrom(text, ' ');
+    return CharMatcher.whitespace().trimAndCollapseFrom(text, ' ');
   }
 
   protected abstract void text(String text);

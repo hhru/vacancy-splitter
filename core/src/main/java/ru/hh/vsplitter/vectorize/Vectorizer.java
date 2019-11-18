@@ -32,7 +32,7 @@ public class Vectorizer implements Serializable {
 
   private static final Logger log = LoggerFactory.getLogger(Vectorizer.class);
   private static final Splitter TOKENIZER =
-      Splitter.on(CharMatcher.JAVA_LETTER_OR_DIGIT.negate()).omitEmptyStrings().trimResults();
+      Splitter.on(CharMatcher.javaLetterOrDigit().negate()).omitEmptyStrings().trimResults();
 
   private transient Stemmer stemmer; // not thread safe, so not static
 
@@ -159,7 +159,9 @@ public class Vectorizer implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-      if (this == o) return true;
+      if (this == o) {
+        return true;
+      }
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
@@ -203,7 +205,7 @@ public class Vectorizer implements Serializable {
 
   @Override
   public int hashCode() {
-    return 31 * (31 * Arrays.hashCode(terms) + (stem ? 1 : 0) ) + totalDocs;
+    return 31 * (31 * Arrays.hashCode(terms) + (stem ? 1 : 0)) + totalDocs;
   }
 
   private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
