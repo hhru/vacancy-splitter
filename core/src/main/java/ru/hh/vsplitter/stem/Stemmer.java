@@ -1,5 +1,9 @@
 package ru.hh.vsplitter.stem;
 
+import org.tartarus.snowball.SnowballProgram;
+import org.tartarus.snowball.ext.EnglishStemmer;
+import org.tartarus.snowball.ext.RussianStemmer;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -10,7 +14,7 @@ public class Stemmer {
   private static final int DEFAULT_POST_STEM_LIMIT = 4;
 
   public enum Language {
-    RUSSIAN(new RussianProgram()), ENGLISH(new EnglishProgram());
+    RUSSIAN(new RussianStemmer()), ENGLISH(new EnglishStemmer());
 
     final SnowballProgram program;
 
@@ -54,10 +58,15 @@ public class Stemmer {
       return word;
     }
 
+    var current = word;
     for (SnowballProgram program : programs) {
-      StringBuilder buffer = new StringBuilder(word);
-      if (program.stem(buffer) && buffer.length() >= postStemLimit) {
-        return buffer.toString();
+      program.setCurrent(current);
+      var isStemmed = program.stem() && program.getCurrentBufferLength() < current.length();
+      if (isStemmed) {
+        current = program.getCurrent();
+      }
+      if (isStemmed && current.length() >= postStemLimit) {
+        return current;
       }
     }
 
