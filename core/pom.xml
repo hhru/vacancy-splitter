@@ -25,6 +25,10 @@
             <groupId>sax</groupId>
             <artifactId>sax</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-analyzers-common</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
