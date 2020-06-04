@@ -5,11 +5,11 @@
     <parent>
         <groupId>ru.hh.vsplitter</groupId>
         <artifactId>vacancy-splitter</artifactId>
-        <version>1.7-SNAPSHOT</version>
+        <version>1.7</version>
     </parent>
 
     <artifactId>core</artifactId>
-    <version>1.7-SNAPSHOT</version>
+    <version>1.7</version>
     <packaging>jar</packaging>
 
     <dependencies>

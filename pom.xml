@@ -10,7 +10,7 @@
 
     <groupId>ru.hh.vsplitter</groupId>
     <artifactId>vacancy-splitter</artifactId>
-    <version>1.7-SNAPSHOT</version>
+    <version>1.7</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -118,7 +118,7 @@
     <scm>
         <connection>scm:git:git@github.com:hhru/vacancy-splitter.git</connection>
         <developerConnection>scm:git:git@github.com:hhru/vacancy-splitter.git</developerConnection>
-      <tag>HEAD</tag>
+      <tag>vacancy-splitter-1.7</tag>
   </scm>
 
 </project>
